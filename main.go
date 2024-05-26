@@ -1,37 +1,44 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"log"
 	"os"
 	"strings"
 	"time"
 
-	"github.com/munnerz/kube-plex/pkg/signals"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/clientcmd"
+
+	"github.com/lrascao/kube-plex/pkg/signals"
 )
 
-// data pvc name
-var dataPVC = os.Getenv("DATA_PVC")
+var (
+	// data pvc name
+	dataPVC = os.Getenv("DATA_PVC")
 
-// config pvc name
-var configPVC = os.Getenv("CONFIG_PVC")
+	// config pvc name
+	configPVC = os.Getenv("CONFIG_PVC")
 
-// transcode pvc name
-var transcodePVC = os.Getenv("TRANSCODE_PVC")
+	// transcode pvc name
+	transcodePVC = os.Getenv("TRANSCODE_PVC")
 
-// pms namespace
-var namespace = os.Getenv("KUBE_NAMESPACE")
+	// pms namespace
+	namespace = os.Getenv("KUBE_NAMESPACE")
 
-// image for the plexmediaserver container containing the transcoder. This
-// should be set to the same as the 'master' pms server
-var pmsImage = os.Getenv("PMS_IMAGE")
-var pmsInternalAddress = os.Getenv("PMS_INTERNAL_ADDRESS")
+	// image for the plexmediaserver container containing the transcoder. This
+	// should be set to the same as the 'master' pms server
+	pmsImage           = os.Getenv("PMS_IMAGE")
+	pmsInternalAddress = os.Getenv("PMS_INTERNAL_ADDRESS")
+)
 
 func main() {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
 	env := os.Environ()
 	args := os.Args
 
@@ -41,7 +48,6 @@ func main() {
 	if err != nil {
 		log.Fatalf("Error getting working directory: %s", err)
 	}
-	pod := generatePod(cwd, env, args)
 
 	cfg, err := clientcmd.BuildConfigFromFlags("", "")
 	if err != nil {
@@ -53,7 +59,9 @@ func main() {
 		log.Fatalf("Error building kubernetes clientset: %s", err)
 	}
 
-	pod, err = kubeClient.CoreV1().Pods(namespace).Create(pod)
+	pod := generatePod(cwd, env, args)
+
+	pod, err = kubeClient.CoreV1().Pods(namespace).Create(ctx, pod, metav1.CreateOptions{})
 	if err != nil {
 		log.Fatalf("Error creating pod: %s", err)
 	}
@@ -62,7 +70,7 @@ func main() {
 	waitFn := func() <-chan error {
 		stopCh := make(chan error)
 		go func() {
-			stopCh <- waitForPodCompletion(kubeClient, pod)
+			stopCh <- waitForPodCompletion(ctx, kubeClient, pod)
 		}()
 		return stopCh
 	}
@@ -77,7 +85,7 @@ func main() {
 	}
 
 	log.Printf("Cleaning up pod...")
-	err = kubeClient.CoreV1().Pods(namespace).Delete(pod.Name, nil)
+	err = kubeClient.CoreV1().Pods(namespace).Delete(ctx, pod.Name, metav1.DeleteOptions{})
 	if err != nil {
 		log.Fatalf("Error cleaning up pod: %s", err)
 	}
@@ -177,9 +185,9 @@ func toCoreV1EnvVar(in []string) []corev1.EnvVar {
 	return out
 }
 
-func waitForPodCompletion(cl kubernetes.Interface, pod *corev1.Pod) error {
+func waitForPodCompletion(ctx context.Context, cl kubernetes.Interface, pod *corev1.Pod) error {
 	for {
-		pod, err := cl.CoreV1().Pods(pod.Namespace).Get(pod.Name, metav1.GetOptions{})
+		pod, err := cl.CoreV1().Pods(pod.Namespace).Get(ctx, pod.Name, metav1.GetOptions{})
 		if err != nil {
 			return err
 		}
