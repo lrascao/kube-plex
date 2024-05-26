@@ -98,6 +98,8 @@ spec:
           value: http://{{ template "fullname" . }}:32400
         - name: PMS_IMAGE
           value: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+        - name: TMP
+          value: "/transcode"
         - name: KUBE_NAMESPACE
           valueFrom:
             fieldRef:
@@ -168,6 +170,8 @@ spec:
 {{ toYaml .Values.nodeSelector | indent 8 }}
     {{- end }}
       volumes:
+      - name: tmp
+        emptyDir: {}
       - name: data
         persistentVolumeClaim:
 {{- if .Values.persistence.data.claimName }}
