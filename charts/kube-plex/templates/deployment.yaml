@@ -150,7 +150,7 @@ spec:
         {{- if .Values.persistence.transcode.subPath }}
           subPath: {{ .Values.persistence.transcode.subPath }}
         {{ end }}
-        - name: tmp
+        - name: transcode
           mountPath: /tmp
         {{- if .Values.persistence.transcode.subPath }}
           subPath: {{ .Values.persistence.transcode.subPath }}
