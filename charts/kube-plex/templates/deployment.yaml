@@ -150,6 +150,11 @@ spec:
         {{- if .Values.persistence.transcode.subPath }}
           subPath: {{ .Values.persistence.transcode.subPath }}
         {{ end }}
+        - name: tmp
+          mountPath: /tmp
+        {{- if .Values.persistence.transcode.subPath }}
+          subPath: {{ .Values.persistence.transcode.subPath }}
+        {{ end }}
         {{-  range .Values.persistence.extraData }}
         - mountPath: "/data-{{ .name }}"
           name: "extradata-{{ .name }}"
