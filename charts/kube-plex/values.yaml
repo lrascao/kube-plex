@@ -3,13 +3,13 @@
 # Declare variables to be passed into your templates.
 image:
   repository: plexinc/pms-docker
-  tag: 1.16.0.1226-7eb2c8f6f
+  tag: latest
   pullPolicy: IfNotPresent
 
 kubePlex:
   enabled: true
   image:
-    repository: quay.io/munnerz/kube-plex
+    repository: registry.88288338.xyz:5000/kube-plex
     tag: latest
     pullPolicy: Always
 
@@ -17,7 +17,7 @@ kubePlex:
 claimToken: ""
 
 # Set the timezone of the plex server
-timezone: Europe/London
+timezone: Europe/Lisbon
 
 service:
   type: ClusterIP
