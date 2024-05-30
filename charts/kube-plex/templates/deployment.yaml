@@ -88,6 +88,14 @@ spec:
           - name: https
             containerPort: 32443
         env:
+{{- if .Values.plex.uid }}
+        - name: PLEX_UID
+          value: "{{.Values.plex.uid}}"
+{{- end }}
+{{- if .Values.plex.gid }}
+        - name: PLEX_GID
+          value: "{{.Values.plex.gid}}"
+{{- end }}
         - name: TZ
           value: "{{ .Values.timezone }}"
         # TODO: move this to a secret?

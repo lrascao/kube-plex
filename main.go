@@ -3,8 +3,10 @@ package main
 import (
 	"context"
 	"fmt"
+	"io"
 	"log"
 	"os"
+	"strconv"
 	"strings"
 	"time"
 
@@ -59,7 +61,10 @@ func main() {
 		log.Fatalf("Error building kubernetes clientset: %s", err)
 	}
 
-	pod := generatePod(cwd, env, args)
+	uid := os.Getenv("PLEX_UID")
+	gid := os.Getenv("PLEX_GID")
+
+	pod := generatePod(cwd, uid, gid, env, args)
 
 	pod, err = kubeClient.CoreV1().Pods(namespace).Create(ctx, pod, metav1.CreateOptions{})
 	if err != nil {
@@ -79,14 +84,27 @@ func main() {
 	case err := <-waitFn():
 		if err != nil {
 			log.Printf("Error waiting for pod to complete: %s", err)
+
+			// dump pod logs
+			req := kubeClient.CoreV1().Pods(namespace).GetLogs(pod.Name, &corev1.PodLogOptions{})
+			logsReader, err := req.Stream(ctx)
+			if err != nil {
+				log.Fatalf("Error getting pod logs: %s", err)
+			}
+			defer logsReader.Close()
+			// read all logs and print them
+			logs, err := io.ReadAll(logsReader)
+			if err != nil {
+				log.Fatalf("Error reading pod logs: %s", err)
+			}
+			log.Printf("Pod logs:\n%s", logs)
 		}
 	case <-stopCh:
 		log.Printf("Exit requested.")
 	}
 
 	log.Printf("Cleaning up pod...")
-	err = kubeClient.CoreV1().Pods(namespace).Delete(ctx, pod.Name, metav1.DeleteOptions{})
-	if err != nil {
+	if err := kubeClient.CoreV1().Pods(namespace).Delete(ctx, pod.Name, metav1.DeleteOptions{}); err != nil {
 		log.Fatalf("Error cleaning up pod: %s", err)
 	}
 }
@@ -107,7 +125,15 @@ func rewriteArgs(in []string) {
 	}
 }
 
-func generatePod(cwd string, env []string, args []string) *corev1.Pod {
+func generatePod(cwd string, uid, gid string, env []string, args []string) *corev1.Pod {
+	strToi64 := func(s string) *int64 {
+		n, err := strconv.ParseInt(s, 10, 64)
+		if err != nil {
+			panic(err)
+		}
+		return &n
+	}
+
 	envVars := toCoreV1EnvVar(env)
 	return &corev1.Pod{
 		ObjectMeta: metav1.ObjectMeta{
@@ -118,6 +144,10 @@ func generatePod(cwd string, env []string, args []string) *corev1.Pod {
 				"kubernetes.io/arch": "amd64",
 			},
 			RestartPolicy: corev1.RestartPolicyNever,
+			SecurityContext: &corev1.PodSecurityContext{
+				RunAsUser:  strToi64(uid),
+				RunAsGroup: strToi64(gid),
+			},
 			Containers: []corev1.Container{
 				{
 					Name:       "plex",
