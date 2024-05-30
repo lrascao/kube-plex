@@ -159,7 +159,6 @@ func generatePod(cwd string, uid, gid string, env []string, args []string) *core
 						{
 							Name:      "data",
 							MountPath: "/data",
-							ReadOnly:  true,
 						},
 						{
 							Name:      "config",
