@@ -13,10 +13,10 @@ kubePlex:
     tag: latest
     pullPolicy: Always
 
-plex:
-  # The UID and GID that the Plex Media Server should run as.
-  uid: 1000
-  gid: 1000
+# plex:
+#   # The UID and GID that the Plex Media Server should run as.
+#   uid: 1000
+#   gid: 1000
 
 # Override this with the plex claim token from plex.tv/claim
 claimToken: ""
