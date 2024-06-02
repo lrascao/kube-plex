@@ -3,6 +3,24 @@ entries:
   kube-plex:
   - apiVersion: v1
     appVersion: 1.16.0.1226-7eb2c8f6f
+    created: "2024-06-02T18:27:21.2903609Z"
+    description: Plex Media Server
+    digest: cc69a85aaa758305cf5c67ecdab054a1cca8546db98a749a7b1bc22990250551
+    home: https://plex.tv/
+    icon: https://www.plex.tv/wp-content/uploads/2018/01/pmp-icon-1.png
+    keywords:
+    - plex
+    maintainers:
+    - name: munnerz
+    - name: lrascao
+    name: kube-plex
+    sources:
+    - https://github.com/lrascao/kube-plex
+    urls:
+    - https://github.com/lrascao/kube-plex/releases/download/kube-plex-0.2.15/kube-plex-0.2.15.tgz
+    version: 0.2.15
+  - apiVersion: v1
+    appVersion: 1.16.0.1226-7eb2c8f6f
     created: "2024-06-02T18:16:57.77151496Z"
     description: Plex Media Server
     digest: 05aefbab480e77176e692b89d0394306bd4256977360b87dd9e551e126876a3a
@@ -145,4 +163,4 @@ entries:
     urls:
     - https://github.com/lrascao/kube-plex/releases/download/kube-plex-0.2.7/kube-plex-0.2.7.tgz
     version: 0.2.7
-generated: "2024-06-02T18:16:57.771550506Z"
+generated: "2024-06-02T18:27:21.290403369Z"
