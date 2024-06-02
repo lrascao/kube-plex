@@ -34,14 +34,6 @@ spec:
         {{- end }}
       {{- end }}
     spec:
-{{- if .Values.plex }}
-{{- if .Values.plex.uid }}
-      securityContext:
-        runAsUser: {{ .Values.plex.uid }}
-        runAsGroup: {{ .Values.plex.gid }}
-        fsGroup: {{ .Values.plex.gid }}
-{{- end }}
-{{- end }}
       serviceAccountName: {{ if .Values.rbac.create }}{{ template "fullname" . }}{{ else }}{{ .Values.rbac.serviceAccountName | quote }}{{ end }}
       hostname: "{{ template "fullname" . }}"
 {{- if .Values.kubePlex.enabled }}
