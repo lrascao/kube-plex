@@ -39,6 +39,7 @@ spec:
       securityContext:
         runAsUser: {{ .Values.plex.uid }}
         runAsGroup: {{ .Values.plex.gid }}
+        fsGroup: {{ .Values.plex.gid }}
 {{- end }}
 {{- end }}
       serviceAccountName: {{ if .Values.rbac.create }}{{ template "fullname" . }}{{ else }}{{ .Values.rbac.serviceAccountName | quote }}{{ end }}
