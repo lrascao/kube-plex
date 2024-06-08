@@ -11,6 +11,7 @@ import (
 	"time"
 
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/clientcmd"
@@ -70,6 +71,7 @@ func main() {
 	if err != nil {
 		log.Fatalf("Error creating pod: %s", err)
 	}
+	log.Printf("started pod %s\n", pod.Name)
 
 	stopCh := signals.SetupSignalHandler()
 	waitFn := func() <-chan error {
@@ -81,9 +83,11 @@ func main() {
 	}
 
 	select {
+	case <-time.After(10 * time.Minute):
+		log.Printf("timeout waiting for pod to complete")
 	case err := <-waitFn():
 		if err != nil {
-			log.Printf("Error waiting for pod to complete: %s", err)
+			log.Printf("error waiting for pod to complete: %s", err)
 
 			// dump pod logs
 			req := kubeClient.CoreV1().Pods(namespace).GetLogs(pod.Name, &corev1.PodLogOptions{})
@@ -97,15 +101,15 @@ func main() {
 			if err != nil {
 				log.Fatalf("Error reading pod logs: %s", err)
 			}
-			log.Printf("Pod logs:\n%s", logs)
+			log.Printf("pod logs:\n%s", logs)
 		}
 	case <-stopCh:
-		log.Printf("Exit requested.")
+		log.Printf("exit requested.")
 	}
 
-	log.Printf("Cleaning up pod...")
+	log.Printf("cleaning up pod...")
 	if err := kubeClient.CoreV1().Pods(namespace).Delete(ctx, pod.Name, metav1.DeleteOptions{}); err != nil {
-		log.Fatalf("Error cleaning up pod: %s", err)
+		log.Fatalf("error cleaning up pod: %s", err)
 	}
 }
 
@@ -155,6 +159,11 @@ func generatePod(cwd string, uid, gid string, env []string, args []string) *core
 					Image:      pmsImage,
 					Env:        envVars,
 					WorkingDir: cwd,
+					Resources: corev1.ResourceRequirements{
+						Limits: corev1.ResourceList{
+							corev1.ResourceCPU: resource.MustParse("100m"),
+						},
+					},
 					VolumeMounts: []corev1.VolumeMount{
 						{
 							Name:      "data",
@@ -220,21 +229,25 @@ func toCoreV1EnvVar(in []string) []corev1.EnvVar {
 
 func waitForPodCompletion(ctx context.Context, cl kubernetes.Interface, pod *corev1.Pod) error {
 	for {
-		pod, err := cl.CoreV1().Pods(pod.Namespace).Get(ctx, pod.Name, metav1.GetOptions{})
-		if err != nil {
-			return err
-		}
+		select {
+		case <-ctx.Done():
+			return fmt.Errorf("context cancelled")
+		case <-time.After(5 * time.Second):
+			pod, err := cl.CoreV1().Pods(pod.Namespace).Get(ctx, pod.Name, metav1.GetOptions{})
+			if err != nil {
+				return err
+			}
 
-		switch pod.Status.Phase {
-		case corev1.PodPending:
-		case corev1.PodRunning:
-		case corev1.PodUnknown:
-			log.Printf("Warning: pod %q is in an unknown state", pod.Name)
-		case corev1.PodFailed:
-			return fmt.Errorf("pod %q failed", pod.Name)
-		case corev1.PodSucceeded:
-			return nil
+			switch pod.Status.Phase {
+			case corev1.PodPending:
+			case corev1.PodRunning:
+			case corev1.PodUnknown:
+				log.Printf("warning: pod %q is in an unknown state", pod.Name)
+			case corev1.PodFailed:
+				return fmt.Errorf("pod %q failed", pod.Name)
+			case corev1.PodSucceeded:
+				return nil
+			}
 		}
-		time.Sleep(1 * time.Second)
 	}
 }
