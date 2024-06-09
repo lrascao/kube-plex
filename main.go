@@ -19,6 +19,10 @@ import (
 	"github.com/lrascao/kube-plex/pkg/signals"
 )
 
+const (
+	constDefaultLimitCPU = "100m"
+)
+
 var (
 	// data pvc name
 	dataPVC = os.Getenv("DATA_PVC")
@@ -36,6 +40,9 @@ var (
 	// should be set to the same as the 'master' pms server
 	pmsImage           = os.Getenv("PMS_IMAGE")
 	pmsInternalAddress = os.Getenv("PMS_INTERNAL_ADDRESS")
+
+	// CPU limit
+	limitCPU = os.Getenv("LIMIT_CPU")
 )
 
 func main() {
@@ -47,6 +54,13 @@ func main() {
 
 	rewriteEnv(env)
 	rewriteArgs(args)
+
+	setDefaults()
+
+	// uncomment below to debug ffmpeg args
+	// fmt.Printf("%s\n", args)
+	// args = []string{"/bin/sh", "-c", "sleep infinity"}
+
 	cwd, err := os.Getwd()
 	if err != nil {
 		log.Fatalf("Error getting working directory: %s", err)
@@ -161,7 +175,7 @@ func generatePod(cwd string, uid, gid string, env []string, args []string) *core
 					WorkingDir: cwd,
 					Resources: corev1.ResourceRequirements{
 						Limits: corev1.ResourceList{
-							corev1.ResourceCPU: resource.MustParse("100m"),
+							corev1.ResourceCPU: resource.MustParse(limitCPU),
 						},
 					},
 					VolumeMounts: []corev1.VolumeMount{
@@ -249,5 +263,11 @@ func waitForPodCompletion(ctx context.Context, cl kubernetes.Interface, pod *cor
 				return nil
 			}
 		}
+	}
+}
+
+func setDefaults() {
+	if limitCPU == "" {
+		limitCPU = constDefaultLimitCPU
 	}
 }

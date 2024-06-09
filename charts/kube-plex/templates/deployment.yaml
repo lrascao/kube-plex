@@ -144,6 +144,11 @@ spec:
           value: "{{.Values.proxy.noproxy}}"
   {{- end }}
 {{- end }}
+        - name: LIMIT_CPU
+          valueFrom:
+            resourceFieldRef:
+              containerName: plex
+              resource: limits.cpu
         volumeMounts:
         - name: data
           mountPath: /data
