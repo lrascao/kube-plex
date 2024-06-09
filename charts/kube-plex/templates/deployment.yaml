@@ -17,7 +17,9 @@ spec:
   replicas: 1
   revisionHistoryLimit: 3
   strategy:
-    type: Recreate
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 1
   selector:
     matchLabels:
       app: {{ template "name" . }}
