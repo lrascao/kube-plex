@@ -74,13 +74,15 @@ spec:
           httpGet:
             path: /identity
             port: 32400
-          initialDelaySeconds: 15
+          initialDelaySeconds: 5
+          periodSeconds: 5
           timeoutSeconds: 5
         livenessProbe:
           httpGet:
             path: /identity
             port: 32400
-          initialDelaySeconds: 10
+          initialDelaySeconds: 5
+          periodSeconds: 5
           timeoutSeconds: 10
         ports:
           - name: pms
