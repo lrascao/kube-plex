@@ -97,8 +97,6 @@ func main() {
 	}
 
 	select {
-	case <-time.After(10 * time.Minute):
-		log.Printf("timeout waiting for pod to complete")
 	case err := <-waitFn():
 		if err != nil {
 			log.Printf("error waiting for pod to complete: %s", err)
